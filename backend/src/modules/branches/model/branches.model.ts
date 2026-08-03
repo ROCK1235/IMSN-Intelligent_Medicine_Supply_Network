@@ -1,5 +1,5 @@
 import { Schema, model, Document, Types } from "mongoose";
-import { Hospital } from "./hospitals.model";
+import { Hospital } from "../../hospitals/model/hospitals.model";
 
 /**
  * Operating hours for a single day

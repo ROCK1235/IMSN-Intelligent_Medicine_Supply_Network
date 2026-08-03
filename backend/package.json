@@ -2,10 +2,12 @@
   "name": "imsn_backend",
   "version": "1.0.0",
   "description": "intelligent_medicine_supply_network",
-  "main": "server.js",
+  "main": "server.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+  "build": "tsc",
+  "start": "node dist/server.js"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ROCK1235/IMSN-Intelligent_Medicine_Supply_Network.git"
@@ -40,7 +42,8 @@
     "@types/node": "^26.1.2",
     "eslint": "^9.39.5",
     "prettier": "^3.9.6",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^7.0.2"
+    "typescript": "^5.8.3"
   }
 }

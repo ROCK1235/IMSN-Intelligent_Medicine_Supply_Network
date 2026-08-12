@@ -194,9 +194,12 @@ const inventorySchema = new Schema<IInventory>(
 /**
  * Indexes
  */
-// Unique compound index for inventory uniqueness
+// Unique compound index for inventory uniqueness. Includes batchNumber
+// (decided in Phase 4 — see DESIGN.md §1.3) so a branch can hold several
+// batches of the same medicine at once, each with its own expiry date —
+// matches how pharmacies actually receive stock.
 inventorySchema.index(
-  { hospital: 1, branch: 1, medicine: 1 },
+  { hospital: 1, branch: 1, medicine: 1, batchNumber: 1 },
   { unique: true }
 );
 

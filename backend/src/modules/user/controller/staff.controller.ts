@@ -19,7 +19,7 @@ export async function invite(req: Request, res: Response): Promise<void> {
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
-  const { page, limit } = req.query as unknown as ListStaffQuery;
+  const { page, limit } = req.validatedQuery as ListStaffQuery;
   const { items, total } = await staffService.listStaff(
     req.user!,
     getParam(req, "hospitalId"),

@@ -22,11 +22,13 @@ export function validate(schema: ZodType) {
 
 /**
  * Validates req.query against a Zod schema (useful for pagination/filter
- * params — see DESIGN.md §2.2). Merges the parsed/coerced result into the
- * existing req.query object rather than reassigning it, since Express 5's
- * req.query is a getter and a plain `req.query = ...` isn't safe to rely on.
- * Read the coerced values back out via `req.query as unknown as InferredType`
- * in the controller.
+ * params — see DESIGN.md §2.2). Stores the parsed/coerced/defaulted result
+ * on req.validatedQuery — NOT back onto req.query, which doesn't work:
+ * Express 5's req.query is a getter with no setter that re-parses the raw
+ * URL on every access, so anything written onto one snapshot of it (even
+ * via Object.assign) is silently discarded on the next read (see MEMORY.md
+ * for how this was caught). Controllers must read
+ * `req.validatedQuery as InferredType`, not `req.query`.
  */
 export function validateQuery(schema: ZodType) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -37,7 +39,7 @@ export function validateQuery(schema: ZodType) {
       return;
     }
 
-    Object.assign(req.query, result.data);
+    req.validatedQuery = result.data;
     next();
   };
 }

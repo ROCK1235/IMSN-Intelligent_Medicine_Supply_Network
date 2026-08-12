@@ -15,7 +15,7 @@ export async function register(req: Request, res: Response): Promise<void> {
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
-  const { page, limit, verified } = req.query as unknown as ListHospitalsQuery;
+  const { page, limit, verified } = req.validatedQuery as ListHospitalsQuery;
   const filter = verified === undefined ? {} : { isVerified: verified === "true" };
 
   const { items, total } = await hospitalService.listHospitals(filter, page, limit);

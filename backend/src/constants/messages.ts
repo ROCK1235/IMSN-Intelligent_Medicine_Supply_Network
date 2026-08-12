@@ -70,3 +70,45 @@ export const STAFF_MESSAGES = {
   INVITE_SUCCESS: "Staff member invited successfully.",
   UPDATE_SUCCESS: "Staff member updated successfully.",
 } as const;
+
+export const MANUFACTURER_MESSAGES = {
+  NOT_FOUND: "Manufacturer not found.",
+  DUPLICATE_NAME: "A manufacturer with this name already exists.",
+  DUPLICATE_LICENSE_NUMBER: "A manufacturer with this license number already exists.",
+  DUPLICATE_EMAIL: "A manufacturer with this email already exists.",
+  CREATE_SUCCESS: "Manufacturer created successfully.",
+  UPDATE_SUCCESS: "Manufacturer updated successfully.",
+  DEACTIVATE_SUCCESS: "Manufacturer deactivated successfully.",
+} as const;
+
+export const CATEGORY_MESSAGES = {
+  NOT_FOUND: "Medicine category not found.",
+  DUPLICATE_NAME: "A category with this name already exists.",
+  DUPLICATE_CODE: "This category code is already in use.",
+  PARENT_NOT_FOUND: "Parent category not found or inactive.",
+  CREATE_SUCCESS: "Category created successfully.",
+  UPDATE_SUCCESS: "Category updated successfully.",
+  DEACTIVATE_SUCCESS: "Category deactivated successfully.",
+} as const;
+
+export const MEDICINE_MESSAGES = {
+  NOT_FOUND: "Medicine not found.",
+  DUPLICATE_REGISTRATION_NUMBER: "A medicine with this registration number already exists.",
+  CATEGORY_NOT_FOUND: "Category not found or inactive.",
+  MANUFACTURER_NOT_FOUND: "Manufacturer not found or inactive.",
+  CREATE_SUCCESS: "Medicine created successfully.",
+  UPDATE_SUCCESS: "Medicine updated successfully.",
+  DISCONTINUE_SUCCESS: "Medicine discontinued successfully.",
+} as const;
+
+export const INVENTORY_MESSAGES = {
+  NOT_FOUND: "Inventory batch not found.",
+  DUPLICATE_BATCH: "This batch number already has an inventory record for this medicine at this branch.",
+  MEDICINE_NOT_FOUND: "Medicine not found or inactive.",
+  BRANCH_NOT_IN_HOSPITAL: "Branch does not belong to this hospital.",
+  INSUFFICIENT_STOCK: "Not enough stock available for this operation.",
+  REASON_REQUIRED: "A reason is required for stock-out and adjustment transactions.",
+  RECEIVE_SUCCESS: "Stock received successfully.",
+  ADJUST_SUCCESS: "Stock adjusted successfully.",
+  UPDATE_SUCCESS: "Inventory updated successfully.",
+} as const;

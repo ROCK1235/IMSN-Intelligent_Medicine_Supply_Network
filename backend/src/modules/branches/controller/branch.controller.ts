@@ -19,7 +19,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 }
 
 export async function list(req: Request, res: Response): Promise<void> {
-  const { page, limit } = req.query as unknown as ListBranchesQuery;
+  const { page, limit } = req.validatedQuery as ListBranchesQuery;
   const { items, total } = await branchService.listBranches(
     req.user!,
     getParam(req, "hospitalId"),

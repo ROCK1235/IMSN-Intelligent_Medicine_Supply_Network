@@ -3,12 +3,14 @@ dotenv.config();
 
 import app from "./app";
 import { connectDB } from "./config/database/db.config";
+import { seedPermissions } from "./seed/permissions.seed";
 import { seedSystemRoles } from "./seed/roles.seed";
 
 const PORT = process.env.PORT || 5000;
 
 async function start(): Promise<void> {
     await connectDB();
+    await seedPermissions();
     await seedSystemRoles();
 
     app.listen(PORT, () => {

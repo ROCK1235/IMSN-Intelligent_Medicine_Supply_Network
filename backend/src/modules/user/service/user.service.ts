@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { randomBytes } from "crypto";
 import { IUser } from "../model/User.model";
 import { SYSTEM_ROLES } from "../../roles/model/roles.model";
 import { AppError } from "../../../utils/AppError";
@@ -6,10 +7,14 @@ import { HTTP_STATUS } from "../../../constants/http";
 import { AUTH_MESSAGES } from "../../../constants/messages";
 import {getRefreshTokenExpiry,signAccessToken,signRefreshToken,verifyRefreshToken,} from "../../../utils/jwt";
 import { hashToken } from "../../../utils/token";
+import { sendMail } from "../../../utils/mails";
 import { RegisterInput, LoginInput } from "../validator/user.validator";
 import * as userRepository from "../repository/user.repository";
 import * as refreshTokenRepository from "../repository/refreshToken.repository";
 import * as roleRepository from "../repository/role.repository";
+
+const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 export interface RequestMeta {
   ipAddress: string;
@@ -63,8 +68,72 @@ export async function register(
     branch: input.branchId ? new Types.ObjectId(input.branchId) : undefined,
   });
 
+  await sendVerificationEmail(user);
+
   const tokens = await issueTokens(user, role.name, meta);
   return { user: toSafeUser(user, role.name), ...tokens };
+}
+
+export async function verifyEmail(rawToken: string): Promise<void> {
+  const hashed = hashToken(rawToken);
+  const user = await userRepository.findByEmailVerificationTokenHash(hashed);
+  if (!user) {
+    throw new AppError(
+      HTTP_STATUS.BAD_REQUEST,
+      AUTH_MESSAGES.VERIFICATION_TOKEN_INVALID
+    );
+  }
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  await userRepository.saveUser(user);
+}
+
+export async function resendVerification(email: string): Promise<void> {
+  const user = await userRepository.findByEmail(email);
+  // Silently no-op if the account doesn't exist or is already verified —
+  // avoids leaking account existence to the caller.
+  if (!user || user.isEmailVerified) return;
+
+  await sendVerificationEmail(user);
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  const user = await userRepository.findByEmail(email);
+  if (!user) return; // avoid leaking account existence
+
+  const resetToken = randomBytes(32).toString("hex");
+  user.passwordResetToken = hashToken(resetToken);
+  user.passwordResetExpires = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+  await userRepository.saveUser(user);
+
+  await sendMail({
+    to: user.email,
+    subject: "Reset your IMSN password",
+    text: `Use this token to reset your password (expires in 1 hour): ${resetToken}`,
+  });
+}
+
+export async function resetPassword(
+  rawToken: string,
+  newPassword: string
+): Promise<void> {
+  const hashed = hashToken(rawToken);
+  const user = await userRepository.findByPasswordResetTokenHash(hashed);
+  if (!user) {
+    throw new AppError(HTTP_STATUS.BAD_REQUEST, AUTH_MESSAGES.RESET_TOKEN_INVALID);
+  }
+
+  user.password = newPassword; // pre-save hook re-hashes since isModified("password")
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  user.loginAttempts = 0;
+  user.lockedUntil = undefined;
+  await userRepository.saveUser(user);
+
+  // Resetting a password should invalidate every existing session.
+  await refreshTokenRepository.revokeAllForUser(user._id);
 }
 
 export async function login(
@@ -151,6 +220,19 @@ export async function logout(refreshTokenJwt: string | undefined): Promise<void>
 
   const hashed = hashToken(refreshTokenJwt);
   await refreshTokenRepository.revokeToken(hashed);
+}
+
+async function sendVerificationEmail(user: IUser): Promise<void> {
+  const verificationToken = randomBytes(32).toString("hex");
+  user.emailVerificationToken = hashToken(verificationToken);
+  user.emailVerificationExpires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+  await userRepository.saveUser(user);
+
+  await sendMail({
+    to: user.email,
+    subject: "Verify your IMSN account",
+    text: `Welcome to IMSN. Use this token to verify your email (expires in 24 hours): ${verificationToken}`,
+  });
 }
 
 async function registerFailedAttempt(user: IUser): Promise<void> {

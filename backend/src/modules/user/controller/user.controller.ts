@@ -84,3 +84,43 @@ export async function me(req: Request, res: Response): Promise<void> {
     data: { user: req.user },
   });
 }
+
+//===============================
+//Email verification
+//===============================
+
+export async function verifyEmail(req: Request, res: Response): Promise<void> {
+  await userService.verifyEmail(req.body.token);
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: AUTH_MESSAGES.EMAIL_VERIFIED_SUCCESS,
+  });
+}
+
+export async function resendVerification(req: Request, res: Response): Promise<void> {
+  await userService.resendVerification(req.body.email);
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: AUTH_MESSAGES.VERIFICATION_EMAIL_SENT,
+  });
+}
+
+//===============================
+//Password reset
+//===============================
+
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  await userService.forgotPassword(req.body.email);
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: AUTH_MESSAGES.PASSWORD_RESET_EMAIL_SENT,
+  });
+}
+
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  await userService.resetPassword(req.body.token, req.body.password);
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: AUTH_MESSAGES.PASSWORD_RESET_SUCCESS,
+  });
+}

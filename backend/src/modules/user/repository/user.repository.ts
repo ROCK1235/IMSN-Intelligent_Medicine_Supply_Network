@@ -37,6 +37,29 @@ export function findActiveById(id: string | Types.ObjectId) {
   return User.findOne({ _id: id, isActive: true, deletedAt: null });
 }
 
+/**
+ * Find a user by their (hashed) email verification token, provided it
+ * hasn't expired. Selects the token/expiry fields since they're
+ * `select: false` on the schema by default.
+ */
+export function findByEmailVerificationTokenHash(hashedToken: string) {
+  return User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpires: { $gt: new Date() },
+  }).select("+emailVerificationToken +emailVerificationExpires");
+}
+
+/**
+ * Find a user by their (hashed) password reset token, provided it hasn't
+ * expired.
+ */
+export function findByPasswordResetTokenHash(hashedToken: string) {
+  return User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: new Date() },
+  }).select("+passwordResetToken +passwordResetExpires");
+}
+
 export function createUser(data: CreateUserData) {
   return User.create(data);
 }

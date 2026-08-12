@@ -2,6 +2,7 @@ import { Schema, model, Document, Types } from "mongoose";
 import { Hospital } from "../../hospitals/model/hospitals.model";
 import { Branch } from "../../branches/model/branches.model";
 import { Medicine } from "../../medicine/model/medicine.model";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Interface for Inventory
@@ -9,6 +10,7 @@ import { Medicine } from "../../medicine/model/medicine.model";
  */
 export interface IInventory extends Document {
   _id: Types.ObjectId;
+  inventoryId: string;
   hospital: Types.ObjectId; // Reference to hospitals
   branch: Types.ObjectId; // Reference to branches
   medicine: Types.ObjectId; // Reference to medicines
@@ -33,6 +35,13 @@ export interface IInventory extends Document {
  */
 const inventorySchema = new Schema<IInventory>(
   {
+    inventoryId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     hospital: {
       type: Schema.Types.ObjectId,
       ref: "Hospital",
@@ -206,6 +215,20 @@ inventorySchema.index({ quantityAvailable: 1 });
 // Compound indexes for common queries
 inventorySchema.index({ hospital: 1, status: 1 });
 inventorySchema.index({ branch: 1, medicine: 1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential inventory ID
+ */
+inventorySchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.inventoryId = await generateSequentialId("inventory", "INV");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Calculate quantityAvailable and determine status

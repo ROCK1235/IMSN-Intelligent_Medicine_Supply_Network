@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Address embedded document interface
@@ -17,6 +18,7 @@ export interface IAddress {
  */
 export interface IManufacturer extends Document {
   _id: Types.ObjectId;
+  manufacturerId: string;
   name: string;
   licenseNumber: string;
   registrationDate: Date;
@@ -85,6 +87,13 @@ const addressSchema = new Schema<IAddress>(
  */
 const manufacturerSchema = new Schema<IManufacturer>(
   {
+    manufacturerId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: [true, "Manufacturer name is required"],
@@ -177,6 +186,20 @@ manufacturerSchema.index({ email: 1 });
 
 // Compound indexes
 manufacturerSchema.index({ isActive: 1, registrationDate: -1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential manufacturer ID
+ */
+manufacturerSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.manufacturerId = await generateSequentialId("manufacturer", "MFR");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Validate email is unique (case-insensitive)

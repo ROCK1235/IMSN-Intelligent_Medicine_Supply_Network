@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Address embedded document interface
@@ -19,6 +20,7 @@ export interface IHospitalAddress {
  */
 export interface IHospital extends Document {
   _id: Types.ObjectId;
+  hospitalId: string;
   name: string;
   registrationNumber: string;
   licenseNumber: string;
@@ -111,6 +113,13 @@ const hospitalAddressSchema = new Schema<IHospitalAddress>(
  */
 const hospitalSchema = new Schema<IHospital>(
   {
+    hospitalId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: [true, "Hospital name is required"],
@@ -317,6 +326,20 @@ hospitalSchema.index({ "address.latitude": 1, "address.longitude": 1 });
 
 // Index for city-based queries
 hospitalSchema.index({ "address.city": 1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential hospital ID
+ */
+hospitalSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.hospitalId = await generateSequentialId("hospital", "HOS");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Auto-verify status

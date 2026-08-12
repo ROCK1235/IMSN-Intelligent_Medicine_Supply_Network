@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Interface for Medicine Categories
@@ -6,6 +7,7 @@ import { Schema, model, Document, Types } from "mongoose";
  */
 export interface IMedicineCategory extends Document {
   _id: Types.ObjectId;
+  categoryId: string;
   name: string;
   description: string;
   code: string;
@@ -22,6 +24,13 @@ export interface IMedicineCategory extends Document {
  */
 const medicineCategorySchema = new Schema<IMedicineCategory>(
   {
+    categoryId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: [true, "Category name is required"],
@@ -116,6 +125,20 @@ medicineCategorySchema.index({ parentCategory: 1 });
 // Compound indexes for sorting and filtering
 medicineCategorySchema.index({ isActive: 1, displayOrder: 1 });
 medicineCategorySchema.index({ parentCategory: 1, isActive: 1, displayOrder: 1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential category ID
+ */
+medicineCategorySchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.categoryId = await generateSequentialId("medicine_category", "CAT");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Validate parent category is not the same as this category

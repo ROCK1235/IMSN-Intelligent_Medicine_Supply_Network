@@ -1,6 +1,7 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { MedicineCategory } from "../../medicineCategories/model/medicineCategories.model";
 import { Manufacturer } from "../../manufacturers/model/manufacturers.model";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Interface for Medicines
@@ -9,10 +10,11 @@ import { Manufacturer } from "../../manufacturers/model/manufacturers.model";
 export interface IMedicine extends Document {
   _id: Types.ObjectId;
   name: string;
+  medicineId: string;
   genericName: string;
   hsn_sac: string;
   gst_rate: number;
-  category: Types.ObjectId; // Reference to medicine_categories
+  category: Types.ObjectId; // Reference to medicine_categoriesmedicine
   manufacturer: Types.ObjectId; // Reference to manufacturers
   strength: string; // e.g., "500mg", "10ml"
   form: string; // e.g., "tablet", "injection", "syrup"
@@ -46,6 +48,12 @@ const medicineSchema = new Schema<IMedicine>(
       trim: true,
       minlength: [2, "Medicine name must be at least 2 characters"],
       maxlength: [100, "Medicine name must not exceed 100 characters"],
+      index: true,
+    },
+    medicineId: {
+      type: String,
+      unique: true,
+      sparse: true,
       index: true,
     },
 
@@ -303,20 +311,26 @@ medicineSchema.index({ reorderLevel: 1 });
 medicineSchema.index({ isActive: 1, category: 1 });
 medicineSchema.index({ isActive: 1, createdAt: -1 });
 
-/**
- * Pre-save hook: Ensure selling price >= cost
- */
-medicineSchema.pre("save", function (next) {
-  if (this.sellingPrice < this.unitCost) {
-    this.sellingPrice = this.unitCost;
-  }
 
-  // Auto-set discontinuedDate if isActive changes to false
-  if (!this.isActive && !this.discontinuedDate) {
-    this.discontinuedDate = new Date();
-  }
+//Auto increment Medicine ID preHook
+medicineSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.medicineId = await generateSequentialId("medicine", "MED");
+    }
 
-  next();
+    if (this.sellingPrice < this.unitCost) {
+      this.sellingPrice = this.unitCost;
+    }
+
+    if (!this.isActive && !this.discontinuedDate) {
+      this.discontinuedDate = new Date();
+    }
+
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
 });
 
 /**
@@ -379,6 +393,7 @@ medicineSchema.methods.requiresSpecialHandling = function (): boolean {
     this.storageConditions.length > 0
   );
 };
+
 
 /**
  * Medicine Model

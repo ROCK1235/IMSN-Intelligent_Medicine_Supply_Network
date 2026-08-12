@@ -23,6 +23,7 @@ export interface AuthTokens {
 
 export interface SafeUser {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -189,6 +190,7 @@ async function issueTokens(
 function toSafeUser(user: IUser, roleName: string): SafeUser {
   return {
     id: user._id.toString(),
+    userId: user.userId,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,

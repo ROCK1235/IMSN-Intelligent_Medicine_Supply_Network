@@ -4,6 +4,7 @@ import { th } from "zod/v4/locales";
 import { Role } from "../../roles/model/roles.model";
 import { Hospital } from "../../hospitals/model/hospitals.model";
 import { Branch } from "../../branches/model/branches.model";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Login history interface
@@ -20,6 +21,7 @@ export interface ILoginRecord {
  */
 export interface IUser extends Document {
   _id: Types.ObjectId;
+  userId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -71,6 +73,13 @@ const loginRecordSchema = new Schema<ILoginRecord>(
  */
 const userSchema = new Schema<IUser>(
   {
+    userId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     firstName: {
       type: String,
       required: [true, "First name is required"],
@@ -296,6 +305,20 @@ userSchema.index({ createdAt: -1 });
 // Compound indexes
 userSchema.index({ isActive: 1, hospital: 1 });
 userSchema.index({ hospital: 1, role: 1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential user ID
+ */
+userSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.userId = await generateSequentialId("user", "USR");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Hash password before saving

@@ -1,5 +1,6 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { Hospital } from "../../hospitals/model/hospitals.model";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Operating hours for a single day
@@ -41,6 +42,7 @@ export interface IBranchAddress {
  */
 export interface IBranch extends Document {
   _id: Types.ObjectId;
+  branchId: string;
   name: string;
   code: string; // Unique per hospital
   branchType: "main" | "satellite" | "dispensary" | "clinic" | "pharmacy";
@@ -173,6 +175,13 @@ const branchAddressSchema = new Schema<IBranchAddress>(
  */
 const branchSchema = new Schema<IBranch>(
   {
+    branchId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: [true, "Branch name is required"],
@@ -317,6 +326,20 @@ branchSchema.index({ hospital: 1, branchType: 1 });
 
 // Geographic index
 branchSchema.index({ "address.city": 1 });
+
+/**
+ * Pre-save hook: Auto-generate sequential branch ID
+ */
+branchSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.branchId = await generateSequentialId("branch", "BRN");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 /**
  * Pre-save hook: Validate closing time is after opening time

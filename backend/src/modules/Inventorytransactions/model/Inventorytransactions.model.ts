@@ -1,6 +1,7 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { Hospital } from "../../hospitals/model/hospitals.model";
 import { User } from "../../user/model/User.model";
+import { generateSequentialId } from "../../counter/service/counter.service";
 
 /**
  * Interface for Inventory Transactions
@@ -8,6 +9,7 @@ import { User } from "../../user/model/User.model";
  */
 export interface IInventoryTransaction extends Document {
   _id: Types.ObjectId;
+  transactionId: string;
   transactionType:
     | "stock_in"
     | "stock_out"
@@ -37,6 +39,13 @@ export interface IInventoryTransaction extends Document {
  */
 const inventoryTransactionSchema = new Schema<IInventoryTransaction>(
   {
+    transactionId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
     transactionType: {
       type: String,
       required: [true, "Transaction type is required"],
@@ -175,6 +184,20 @@ const inventoryTransactionSchema = new Schema<IInventoryTransaction>(
     strict: true,
   }
 );
+
+/**
+ * Pre-save hook: Auto-generate sequential transaction ID
+ */
+inventoryTransactionSchema.pre("save", async function (next) {
+  try {
+    if (this.isNew) {
+      this.transactionId = await generateSequentialId("inventory_transaction", "TXN");
+    }
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 // Set createdAt manually
 inventoryTransactionSchema.pre("save", function (next) {

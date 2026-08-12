@@ -13,3 +13,7 @@ export function findActiveRoleByName(name: string) {
 export function findRoleById(id: Types.ObjectId) {
   return Role.findById(id);
 }
+
+export function findRolesByIds(ids: Types.ObjectId[]) {
+  return Role.find({ _id: { $in: ids } });
+}

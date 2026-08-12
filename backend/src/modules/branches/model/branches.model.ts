@@ -341,6 +341,16 @@ branchSchema.pre("save", async function (next) {
   }
 });
 
+const DAY_NAMES = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
 /**
  * Pre-save hook: Validate closing time is after opening time
  */
@@ -354,7 +364,14 @@ branchSchema.pre("save", function (next) {
   };
 
   try {
-    Object.values(this.operatingHours).forEach(validateDay);
+    // NOTE: iterate the known day names explicitly rather than
+    // `Object.values(this.operatingHours)` — on a Mongoose subdocument that
+    // also enumerates internal Mongoose properties, not just the 7 schema
+    // paths, which crashed here with "Cannot read properties of undefined
+    // (reading 'replace')" the first time a branch was actually created.
+    for (const dayName of DAY_NAMES) {
+      validateDay(this.operatingHours[dayName]);
+    }
   } catch (error) {
     return next(error as Error);
   }

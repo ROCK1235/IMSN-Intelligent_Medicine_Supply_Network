@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { SYSTEM_ROLES } from "../../roles/model/roles.model";
 
 const PASSWORD_REGEX = {
   upper: /[A-Z]/,
@@ -22,22 +21,22 @@ const passwordSchema = z
     "Password must contain a special character (!@#$%^&*)"
   );
 
+/**
+ * Public self-registration is deliberately narrow: it only ever creates the
+ * first Hospital Manager account for an already-verified hospital (see
+ * PRD §6.1, DESIGN.md §1.5). It can NOT be used to create an admin, a
+ * pharmacist, or a viewer — those are provisioned out-of-band (admin) or via
+ * the invite-only staff endpoints under /hospitals/:hospitalId/staff
+ * (pharmacist/viewer), which force role + hospital server-side instead of
+ * trusting client input.
+ */
 export const registerSchema = z.object({
   firstName: z.string().trim().min(2, "First name must be at least 2 characters").max(50),
   lastName: z.string().trim().min(2, "Last name must be at least 2 characters").max(50),
   email: z.string().trim().toLowerCase().email("Invalid email format"),
   password: passwordSchema,
   phoneNumber: z.string().trim().min(10).max(15).optional(),
-  role: z
-    .enum([
-      SYSTEM_ROLES.ADMIN,
-      SYSTEM_ROLES.HOSPITAL_MANAGER,
-      SYSTEM_ROLES.PHARMACIST,
-      SYSTEM_ROLES.VIEWER,
-    ])
-    .optional(),
-  hospitalId: z.string().regex(objectIdRegex, "Invalid hospital id").optional(),
-  branchId: z.string().regex(objectIdRegex, "Invalid branch id").optional(),
+  hospitalId: z.string().regex(objectIdRegex, "Invalid hospital id"),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -79,3 +78,15 @@ export const resetPasswordSchema = z.object({
 });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const updateOwnProfileSchema = z
+  .object({
+    firstName: z.string().trim().min(2).max(50).optional(),
+    lastName: z.string().trim().min(2).max(50).optional(),
+    phoneNumber: z.string().trim().min(10).max(15).optional(),
+  })
+  .refine((obj) => Object.keys(obj).length > 0, {
+    message: "At least one field must be provided",
+  });
+
+export type UpdateOwnProfileInput = z.infer<typeof updateOwnProfileSchema>;

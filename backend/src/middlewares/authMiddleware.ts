@@ -3,7 +3,7 @@ import { verifyAccessToken } from "../utils/jwt";
 import { AppError } from "../utils/AppError";
 import { HTTP_STATUS } from "../constants/http";
 import { AUTH_MESSAGES } from "../constants/messages";
-import { User } from "../modules/user/model/User.model";
+import * as userRepository from "../modules/user/repository/user.repository";
 
 /**
  * Requires a valid access token (Authorization: Bearer <token>).
@@ -25,8 +25,12 @@ export async function protect(
 
     const payload = verifyAccessToken(token);
 
-    const user = await User.findById(payload.userId);
-    if (!user || !user.isActive || user.deletedAt) {
+    // findActiveById filters { isActive: true, deletedAt: null } in the query
+    // itself — deletedAt is `select: false` on the schema, so checking it on
+    // a fetched document (rather than in the filter) would always read
+    // `undefined` regardless of the real value. See MEMORY.md.
+    const user = await userRepository.findActiveById(payload.userId);
+    if (!user) {
       throw new AppError(
         HTTP_STATUS.UNAUTHORIZED,
         AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE

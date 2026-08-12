@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { randomBytes } from "crypto";
 import { IUser } from "../model/User.model";
 import { SYSTEM_ROLES } from "../../roles/model/roles.model";
@@ -8,10 +7,15 @@ import { AUTH_MESSAGES } from "../../../constants/messages";
 import {getRefreshTokenExpiry,signAccessToken,signRefreshToken,verifyRefreshToken,} from "../../../utils/jwt";
 import { hashToken } from "../../../utils/token";
 import { sendMail } from "../../../utils/mails";
-import { RegisterInput, LoginInput } from "../validator/user.validator";
+import {
+  RegisterInput,
+  LoginInput,
+  UpdateOwnProfileInput,
+} from "../validator/user.validator";
 import * as userRepository from "../repository/user.repository";
 import * as refreshTokenRepository from "../repository/refreshToken.repository";
 import * as roleRepository from "../repository/role.repository";
+import * as hospitalRepository from "../repository/hospital.repository";
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -39,6 +43,13 @@ export interface SafeUser {
   isEmailVerified: boolean;
 }
 
+/**
+ * Public self-registration: claims the Hospital Manager slot for an
+ * already-verified hospital that doesn't have one yet. See the comment on
+ * `registerSchema` (user.validator.ts) for why this is deliberately narrow —
+ * pharmacist/viewer accounts are created via staff.service.ts#inviteStaff
+ * instead, and admin accounts aren't creatable through the HTTP API at all.
+ */
 export async function register(
   input: RegisterInput,
   meta: RequestMeta
@@ -48,13 +59,34 @@ export async function register(
     throw new AppError(HTTP_STATUS.CONFLICT, AUTH_MESSAGES.EMAIL_ALREADY_REGISTERED);
   }
 
-  const roleName = input.role ?? SYSTEM_ROLES.VIEWER;
-  const role = await roleRepository.findActiveRoleByName(roleName);
+  const hospital = await hospitalRepository.findById(input.hospitalId);
+  if (!hospital) {
+    throw new AppError(
+      HTTP_STATUS.NOT_FOUND,
+      AUTH_MESSAGES.HOSPITAL_NOT_FOUND_FOR_REGISTRATION
+    );
+  }
+  if (!hospital.isVerified || !hospital.isActive) {
+    throw new AppError(
+      HTTP_STATUS.FORBIDDEN,
+      AUTH_MESSAGES.HOSPITAL_NOT_VERIFIED_FOR_REGISTRATION
+    );
+  }
+
+  const role = await roleRepository.findActiveRoleByName(SYSTEM_ROLES.HOSPITAL_MANAGER);
   if (!role) {
     throw new AppError(
       HTTP_STATUS.INTERNAL_SERVER_ERROR,
       AUTH_MESSAGES.ROLE_NOT_AVAILABLE
     );
+  }
+
+  const existingManagers = await userRepository.countByHospitalAndRole(
+    hospital._id,
+    role._id
+  );
+  if (existingManagers > 0) {
+    throw new AppError(HTTP_STATUS.CONFLICT, AUTH_MESSAGES.HOSPITAL_ALREADY_HAS_MANAGER);
   }
 
   const user = await userRepository.createUser({
@@ -64,14 +96,32 @@ export async function register(
     password: input.password,
     phoneNumber: input.phoneNumber,
     role: role._id,
-    hospital: input.hospitalId ? new Types.ObjectId(input.hospitalId) : undefined,
-    branch: input.branchId ? new Types.ObjectId(input.branchId) : undefined,
+    hospital: hospital._id,
   });
 
   await sendVerificationEmail(user);
 
   const tokens = await issueTokens(user, role.name, meta);
   return { user: toSafeUser(user, role.name), ...tokens };
+}
+
+export async function updateProfile(
+  userId: string,
+  input: UpdateOwnProfileInput
+): Promise<SafeUser> {
+  const user = await userRepository.findActiveById(userId);
+  if (!user) {
+    throw new AppError(
+      HTTP_STATUS.UNAUTHORIZED,
+      AUTH_MESSAGES.USER_NOT_FOUND_OR_INACTIVE
+    );
+  }
+
+  Object.assign(user, input);
+  await userRepository.saveUser(user);
+
+  const role = await roleRepository.findRoleById(user.role);
+  return toSafeUser(user, role?.name ?? "");
 }
 
 export async function verifyEmail(rawToken: string): Promise<void> {

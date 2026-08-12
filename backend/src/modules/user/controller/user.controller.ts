@@ -124,3 +124,16 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
     message: AUTH_MESSAGES.PASSWORD_RESET_SUCCESS,
   });
 }
+
+//===============================
+//Own profile
+//===============================
+
+export async function updateMe(req: Request, res: Response): Promise<void> {
+  const user = await userService.updateProfile(req.user!.id, req.body);
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: AUTH_MESSAGES.PROFILE_UPDATED,
+    data: { user },
+  });
+}

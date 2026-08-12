@@ -8,6 +8,7 @@ import {
   registerSchema,
   resendVerificationSchema,
   resetPasswordSchema,
+  updateOwnProfileSchema,
   verifyEmailSchema,
 } from "../validator/user.validator";
 
@@ -18,6 +19,7 @@ router.post("/login", validate(loginSchema), userController.login);
 router.post("/refresh-token", userController.refreshToken);
 router.post("/logout", userController.logout);
 router.get("/me", protect, userController.me);
+router.patch("/me", protect, validate(updateOwnProfileSchema), userController.updateMe);
 
 router.post("/verify-email", validate(verifyEmailSchema), userController.verifyEmail);
 router.post(

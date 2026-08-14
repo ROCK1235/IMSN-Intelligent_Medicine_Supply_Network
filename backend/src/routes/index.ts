@@ -8,6 +8,10 @@ import categoryRoutes from "../modules/medicineCategories/route/category.route";
 import medicineRoutes from "../modules/medicine/route/medicine.route";
 import inventoryRoutes from "../modules/inventery/route/inventory.route";
 import inventoryReportsRoutes from "../modules/inventery/route/inventoryReports.route";
+import exchangeRequestRoutes from "../modules/exchangeRequests/route/exchangeRequest.route";
+import notificationRoutes from "../modules/notifications/route/notification.route";
+import auditLogRoutes from "../modules/auditLogs/route/auditLog.route";
+import auditLogHospitalRoutes from "../modules/auditLogs/route/auditLog.hospitalRoute";
 
 const router = Router();
 
@@ -27,9 +31,13 @@ router.use("/hospitals/:hospitalId/branches", branchRoutes);
 router.use("/hospitals/:hospitalId/staff", staffRoutes);
 router.use("/hospitals/:hospitalId/inventory", inventoryReportsRoutes);
 router.use("/hospitals/:hospitalId/branches/:branchId/inventory", inventoryRoutes);
+router.use("/hospitals/:hospitalId/audit-logs", auditLogHospitalRoutes);
 
 router.use("/manufacturers", manufacturerRoutes);
 router.use("/medicine-categories", categoryRoutes);
 router.use("/medicines", medicineRoutes);
+router.use("/exchange-requests", exchangeRequestRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/audit-logs", auditLogRoutes);
 
 export default router;

@@ -16,9 +16,13 @@ import {
 // access to :hospitalId from the parent mount path.
 const router = Router({ mergeParams: true });
 
-router.use(protect, requireHospitalMatch("hospitalId"));
+router.use(protect);
 
-// Any staff member of this hospital (or admin) can view its branches.
+// Any authenticated user can view any hospital's branches — not just their
+// own. Needed to pick a recipient branch when creating an exchange request
+// (see Phase 7 frontend work); branch name/address/contact info isn't
+// sensitive, so this follows the same "reads open, writes gated" pattern as
+// the medicine catalog (DESIGN.md §2.1).
 router.get("/", validateQuery(listBranchesQuerySchema), branchController.list);
 router.get("/:branchId", branchController.getById);
 
@@ -26,18 +30,21 @@ router.get("/:branchId", branchController.getById);
 router.post(
   "/",
   authorize(PERMISSIONS.MANAGE_OWN_HOSPITAL),
+  requireHospitalMatch("hospitalId"),
   validate(createBranchSchema),
   branchController.create
 );
 router.patch(
   "/:branchId",
   authorize(PERMISSIONS.MANAGE_OWN_HOSPITAL),
+  requireHospitalMatch("hospitalId"),
   validate(updateBranchSchema),
   branchController.update
 );
 router.post(
   "/:branchId/deactivate",
   authorize(PERMISSIONS.MANAGE_OWN_HOSPITAL),
+  requireHospitalMatch("hospitalId"),
   branchController.deactivate
 );
 

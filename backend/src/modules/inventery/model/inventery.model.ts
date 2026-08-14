@@ -27,6 +27,13 @@ export interface IInventory extends Document {
   cost: number; // Total cost: quantityInStock * unitCost
   createdAt: Date;
   updatedAt: Date;
+
+  getDaysToExpiry(): number;
+  isExpired(): boolean;
+  isExpiringSoon(days?: number): boolean;
+  canBeUsedForExchange(): boolean;
+  reserveQuantity(quantity: number): Promise<boolean>;
+  releaseReservation(quantity: number): Promise<void>;
 }
 
 /**

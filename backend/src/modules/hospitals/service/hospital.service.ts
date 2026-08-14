@@ -2,7 +2,7 @@ import { IHospital } from "../model/hospitals.model";
 import { AppError } from "../../../utils/AppError";
 import { HTTP_STATUS } from "../../../constants/http";
 import { HOSPITAL_MESSAGES } from "../../../constants/messages";
-import { assertSameHospital } from "../../../utils/authorization";
+import { assertSameHospital, isAdminRole } from "../../../utils/authorization";
 import * as hospitalRepository from "../repository/hospital.repository";
 import { RegisterHospitalInput, UpdateHospitalInput } from "../validator/hospital.validator";
 
@@ -46,11 +46,21 @@ export async function getHospitalById(hospitalId: string): Promise<IHospital> {
   return hospital;
 }
 
+/**
+ * Admins get the raw `?verified=` filter they need for the verification
+ * workflow (including seeing unverified hospitals). Everyone else can only
+ * browse the public verified+active directory — e.g. to pick a recipient
+ * hospital when creating an exchange request — never unverified ones.
+ */
 export async function listHospitals(
-  filter: { isVerified?: boolean },
+  actor: Actor,
+  verifiedFilter: boolean | undefined,
   page: number,
   limit: number
 ) {
+  const filter = isAdminRole(actor.role)
+    ? { isVerified: verifiedFilter }
+    : { isVerified: true, isActive: true };
   return hospitalRepository.list(filter, page, limit);
 }
 

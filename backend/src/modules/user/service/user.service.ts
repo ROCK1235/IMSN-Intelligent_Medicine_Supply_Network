@@ -7,6 +7,7 @@ import { AUTH_MESSAGES } from "../../../constants/messages";
 import {getRefreshTokenExpiry,signAccessToken,signRefreshToken,verifyRefreshToken,} from "../../../utils/jwt";
 import { hashToken } from "../../../utils/token";
 import { sendMail } from "../../../utils/mails";
+import * as auditLogService from "../../auditLogs/service/auditLog.service";
 import {
   RegisterInput,
   LoginInput,
@@ -196,16 +197,19 @@ export async function login(
   }
 
   if (!user.isActive) {
+    await auditLoginFailure(user, meta, AUTH_MESSAGES.ACCOUNT_DEACTIVATED);
     throw new AppError(HTTP_STATUS.FORBIDDEN, AUTH_MESSAGES.ACCOUNT_DEACTIVATED);
   }
 
   if (user.isAccountLocked()) {
+    await auditLoginFailure(user, meta, AUTH_MESSAGES.ACCOUNT_LOCKED);
     throw new AppError(HTTP_STATUS.LOCKED, AUTH_MESSAGES.ACCOUNT_LOCKED);
   }
 
   const passwordMatches = await user.comparePassword(input.password);
   if (!passwordMatches) {
     await registerFailedAttempt(user);
+    await auditLoginFailure(user, meta, AUTH_MESSAGES.INVALID_CREDENTIALS);
     throw new AppError(HTTP_STATUS.UNAUTHORIZED, AUTH_MESSAGES.INVALID_CREDENTIALS);
   }
 
@@ -224,6 +228,19 @@ export async function login(
 
   const role = await roleRepository.findRoleById(user.role);
   const tokens = await issueTokens(user, role?.name ?? "", meta);
+
+  await auditLogService.record({
+    actor: user._id.toString(),
+    actorRole: role?.name,
+    action: "LOGIN",
+    resource: "user",
+    resourceId: user._id.toString(),
+    status: "success",
+    ipAddress: meta.ipAddress,
+    userAgent: meta.userAgent,
+    hospital: user.hospital?.toString(),
+  });
+
   return { user: toSafeUser(user, role?.name ?? ""), ...tokens };
 }
 
@@ -270,6 +287,40 @@ export async function logout(refreshTokenJwt: string | undefined): Promise<void>
 
   const hashed = hashToken(refreshTokenJwt);
   await refreshTokenRepository.revokeToken(hashed);
+
+  // Best-effort actor resolution — logout has no `protect`-issued req.user,
+  // only the raw refresh token, and an expired/already-revoked token is a
+  // perfectly normal logout call, not an error worth surfacing.
+  try {
+    const payload = verifyRefreshToken(refreshTokenJwt);
+    await auditLogService.record({
+      actor: payload.userId,
+      action: "LOGOUT",
+      resource: "user",
+      resourceId: payload.userId,
+      status: "success",
+    });
+  } catch {
+    // Token undecodable — nothing to attribute the audit entry to.
+  }
+}
+
+async function auditLoginFailure(
+  user: IUser,
+  meta: RequestMeta,
+  reason: string
+): Promise<void> {
+  await auditLogService.record({
+    actor: user._id.toString(),
+    action: "LOGIN",
+    resource: "user",
+    resourceId: user._id.toString(),
+    status: "failure",
+    errorMessage: reason,
+    ipAddress: meta.ipAddress,
+    userAgent: meta.userAgent,
+    hospital: user.hospital?.toString(),
+  });
 }
 
 async function sendVerificationEmail(user: IUser): Promise<void> {

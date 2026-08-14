@@ -16,9 +16,13 @@ export async function register(req: Request, res: Response): Promise<void> {
 
 export async function list(req: Request, res: Response): Promise<void> {
   const { page, limit, verified } = req.validatedQuery as ListHospitalsQuery;
-  const filter = verified === undefined ? {} : { isVerified: verified === "true" };
 
-  const { items, total } = await hospitalService.listHospitals(filter, page, limit);
+  const { items, total } = await hospitalService.listHospitals(
+    req.user!,
+    verified === undefined ? undefined : verified === "true",
+    page,
+    limit
+  );
   res.status(HTTP_STATUS.OK).json({
     success: true,
     data: { hospitals: items, page, limit, total },

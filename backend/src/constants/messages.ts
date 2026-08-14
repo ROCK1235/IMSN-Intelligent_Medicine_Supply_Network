@@ -101,6 +101,43 @@ export const MEDICINE_MESSAGES = {
   DISCONTINUE_SUCCESS: "Medicine discontinued successfully.",
 } as const;
 
+export const EXCHANGE_MESSAGES = {
+  NOT_FOUND: "Exchange request not found.",
+  ITEM_NOT_FOUND: "Exchange item not found.",
+  HOSPITAL_INACTIVE: "Hospital not found or inactive.",
+  BRANCH_NOT_IN_HOSPITAL: "Branch does not belong to this hospital.",
+  SAME_HOSPITAL: "Initiator and recipient hospitals must be different.",
+  ITEMS_REQUIRED: "At least one item is required.",
+  INVENTORY_NOT_IN_INITIATOR_BRANCH: "Inventory batch does not belong to the initiator's branch.",
+  MEDICINE_MISMATCH: "Inventory batch does not match the requested medicine.",
+  NOT_EXCHANGEABLE: "This batch cannot be used for exchange (expired, expiring soon, or out of stock).",
+  INSUFFICIENT_AVAILABLE: "Requested quantity exceeds available stock for this batch.",
+  NOT_PARTICIPANT: "You are not a participant in this exchange request.",
+  ONLY_RECIPIENT_CAN_APPROVE: "Only the recipient hospital can approve or reject this request.",
+  ONLY_INITIATOR_CAN_CANCEL: "Only the initiator hospital can cancel this request.",
+  ONLY_INITIATOR_CAN_SHIP: "Only the initiator hospital can mark this request as shipped.",
+  ONLY_RECIPIENT_CAN_RECEIVE: "Only the recipient hospital can confirm receipt of this request.",
+  INVALID_STATUS_FOR_APPROVE: "Only pending requests can be approved or rejected.",
+  INVALID_STATUS_FOR_CANCEL: "Only pending or approved requests can be cancelled.",
+  INVALID_STATUS_FOR_SHIP: "Only approved requests can be marked as shipped.",
+  INVALID_STATUS_FOR_RECEIVE: "Only in-transit requests can be marked as received.",
+  ALL_ITEMS_REJECTED: "All items were rejected; the request has been rejected.",
+  QUANTITY_APPROVED_EXCEEDS_REQUESTED: "Approved quantity cannot exceed requested quantity.",
+  QUANTITY_RECEIVED_EXCEEDS_APPROVED: "Received quantity cannot exceed approved quantity.",
+  CREATE_SUCCESS: "Exchange request created successfully.",
+  APPROVE_SUCCESS: "Exchange request reviewed successfully.",
+  REJECT_SUCCESS: "Exchange request rejected.",
+  CANCEL_SUCCESS: "Exchange request cancelled.",
+  SHIP_SUCCESS: "Exchange request marked as shipped.",
+  RECEIVE_SUCCESS: "Exchange request receipt recorded.",
+} as const;
+
+export const NOTIFICATION_MESSAGES = {
+  NOT_FOUND: "Notification not found.",
+  MARK_READ_SUCCESS: "Notification marked as read.",
+  MARK_ALL_READ_SUCCESS: "All notifications marked as read.",
+} as const;
+
 export const INVENTORY_MESSAGES = {
   NOT_FOUND: "Inventory batch not found.",
   DUPLICATE_BATCH: "This batch number already has an inventory record for this medicine at this branch.",

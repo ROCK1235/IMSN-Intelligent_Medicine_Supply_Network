@@ -16,11 +16,13 @@ const router = Router();
 // Public: any hospital can self-register (see PRD §6, DESIGN.md §1.4)
 router.post("/register", validate(registerHospitalSchema), hospitalController.register);
 
-// Admin only: browse/verify/deactivate hospitals
+// Any authenticated user can browse hospitals (needed to pick a recipient
+// when creating an exchange request — see Phase 7 frontend work). Non-admins
+// are forced to verified+active only in the service; admins keep the
+// unfiltered/`?verified=` view they need for the verification workflow.
 router.get(
   "/",
   protect,
-  authorize(PERMISSIONS.MANAGE_HOSPITALS),
   validateQuery(listHospitalsQuerySchema),
   hospitalController.list
 );

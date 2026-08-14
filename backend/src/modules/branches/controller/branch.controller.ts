@@ -21,7 +21,6 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function list(req: Request, res: Response): Promise<void> {
   const { page, limit } = req.validatedQuery as ListBranchesQuery;
   const { items, total } = await branchService.listBranches(
-    req.user!,
     getParam(req, "hospitalId"),
     page,
     limit
@@ -34,7 +33,6 @@ export async function list(req: Request, res: Response): Promise<void> {
 
 export async function getById(req: Request, res: Response): Promise<void> {
   const branch = await branchService.getBranch(
-    req.user!,
     getParam(req, "hospitalId"),
     getParam(req, "branchId")
   );
@@ -43,7 +41,6 @@ export async function getById(req: Request, res: Response): Promise<void> {
 
 export async function update(req: Request, res: Response): Promise<void> {
   const branch = await branchService.updateBranch(
-    req.user!,
     getParam(req, "hospitalId"),
     getParam(req, "branchId"),
     req.body
@@ -57,7 +54,6 @@ export async function update(req: Request, res: Response): Promise<void> {
 
 export async function deactivate(req: Request, res: Response): Promise<void> {
   const branch = await branchService.deactivateBranch(
-    req.user!,
     getParam(req, "hospitalId"),
     getParam(req, "branchId")
   );

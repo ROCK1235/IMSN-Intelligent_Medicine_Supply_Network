@@ -39,18 +39,15 @@ export async function createBranch(
   return branch;
 }
 
-export async function listBranches(actor: Actor, hospitalId: string, page: number, limit: number) {
-  assertSameHospital(actor, hospitalId);
+// Deliberately no assertSameHospital here — branch reads are open to any
+// authenticated user (see branch.route.ts). Mutations stay hospital-scoped
+// via the route-level requireHospitalMatch that runs before these are ever
+// reached from updateBranch/deactivateBranch below.
+export async function listBranches(hospitalId: string, page: number, limit: number) {
   return branchRepository.listByHospital(hospitalId, page, limit);
 }
 
-export async function getBranch(
-  actor: Actor,
-  hospitalId: string,
-  branchId: string
-): Promise<IBranch> {
-  assertSameHospital(actor, hospitalId);
-
+export async function getBranch(hospitalId: string, branchId: string): Promise<IBranch> {
   const branch = await branchRepository.findById(branchId);
   if (!branch || branch.hospital.toString() !== hospitalId) {
     throw new AppError(HTTP_STATUS.NOT_FOUND, BRANCH_MESSAGES.NOT_FOUND);
@@ -59,12 +56,11 @@ export async function getBranch(
 }
 
 export async function updateBranch(
-  actor: Actor,
   hospitalId: string,
   branchId: string,
   input: UpdateBranchInput
 ): Promise<IBranch> {
-  const branch = await getBranch(actor, hospitalId, branchId);
+  const branch = await getBranch(hospitalId, branchId);
 
   const { address, operatingHours, ...rest } = input;
   Object.assign(branch, rest);
@@ -75,12 +71,8 @@ export async function updateBranch(
   return branch;
 }
 
-export async function deactivateBranch(
-  actor: Actor,
-  hospitalId: string,
-  branchId: string
-): Promise<IBranch> {
-  const branch = await getBranch(actor, hospitalId, branchId);
+export async function deactivateBranch(hospitalId: string, branchId: string): Promise<IBranch> {
+  const branch = await getBranch(hospitalId, branchId);
 
   if (branch.isActive) {
     branch.isActive = false;
